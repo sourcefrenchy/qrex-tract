@@ -6,6 +6,9 @@ import bottle
 from bottle import route, request
 import os
 import sys
+import cv2
+import numpy as np
+import os
 
 # routes contains the HTTP handlers for our server and must be imported.
 import routes
@@ -20,14 +23,43 @@ def wsgi_app():
     when the site is published to Microsoft Azure."""
     return bottle.default_app()
 
+
+def video_cutintoframes(filenme):
+    """Receives a mp4 and return location of all frames."""
+    # Playing video from file:
+    cap = cv2.VideoCapture(filename)
+
+    try:
+        if not os.path.exists('data'):
+            os.makedirs('data')
+    except OSError:
+        print ('Error: Creating directory of data')
+
+    currentFrame = 0
+    while(True):
+        # Capture frame-by-frame
+        ret, frame = cap.read()
+
+        # Saves image of the current frame in jpg file
+        name = './data/frame' + str(currentFrame) + '.jpg'
+        print ('Creating...' + name)
+        cv2.imwrite(name, frame)
+
+        # To stop duplicate images
+        currentFrame += 1
+
+    # When everything done, release the capture
+    cap.release()
+    cv2.destroyAllWindows()
+
 @route('/upload', method='POST')
 def do_upload():
-    name = request.forms.name
     data = request.files.data
-    if name and data and data.file:
+    if data and data.file:
         raw = data.file.read() # This is dangerous for big files
-        filename = data.filename
-        return "Hello %s! You uploaded %s (%d bytes)." % (name, filename, len(raw))
+        filename = "payload"
+        video_cutintoframes(filename)
+        return "Hello! You uploaded %s (%d bytes)." % (filename, len(raw))
     return "You missed a field."
 
 if __name__ == '__main__':
